@@ -117,7 +117,7 @@ if (certificationDocsPath) {
 router.delete('/datadelete/:id', async (req, res) => {
   try {
     const freelancerId = req.params.id;
-    const  {skillToDelete , workdelete}  = req.body; // Expecting the skill to delete
+    const  {skillToDelete , workdelete}  = req.body; 
     
     const filter = { _id: freelancerId };
     const update = {$set: {}  };

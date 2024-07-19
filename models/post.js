@@ -48,7 +48,19 @@ const PostSchema = new mongoose.Schema({
     employerid: {
         type: ObjectId,
         required: true
-    }
+    },
+    anonymous: {
+        type: Boolean,
+        required: true
+    },
+    cv: {
+        type: Boolean,
+        required: true
+    },
+    coverletter: {
+        type: Boolean,
+        required: true
+    },
 });
 
 const Post = mongoose.model("Post", PostSchema);

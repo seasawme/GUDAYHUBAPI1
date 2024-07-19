@@ -16,6 +16,15 @@ const ApplicantSchema = new mongoose.Schema({
     status:{
         type: String,
     },
+    interivewDate:{
+        type: Date,
+    },
+    interivewTime:{
+        type: String,
+    },
+    interviewInfo:{
+        type: String,
+    }
 });
  const applicant = mongoose.model("applicant", ApplicantSchema);
 

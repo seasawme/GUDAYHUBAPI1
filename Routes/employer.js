@@ -3,15 +3,42 @@ const router = express.Router();
 const { User } = require("../models/User");
 const upload = require("../FileHandler/profilepicConfig");
 
-//to read freelancer for employer
-router.get("/readfromserver", (req, res) => {
+
+//to searcch employer by id
+router.get("/serach/:id", async (req, res) => {
   try {
-    User.find().then((User) => res.json(User));
+    const employerid = req.params.id;
+    const employer = await User.findById(employerid);
+    if (!employer) {
+      return res.status(404).json({ message: "employer not found" });
+    }
+    res.json(employer);
+
+    
   } catch (error) {
-    console.log("errorr", error.message);
-    res.status(500).send("server error while reading data");
+    console.error("Error reading post:", error);
+    res.status(500).json({ message: "Server error while reading employer" });
   }
 });
+
+//to read freelancer for employer
+router.get("/readfromserver", async (req, res) => {
+  try {
+    const search = req.query.serachtitle || "";  // Default to an empty string if search query is not provided
+    const users = await User.find({
+      $or: [
+        { "freelancerprofile.title": { $regex: search, $options: "i" } },
+        { "freelancerprofile.title": null },  // Include documents where title is null
+      ],
+    });
+    res.json(users);
+  } catch (error) {
+    console.log("error", error.message);
+    res.status(500).send("Server error while reading data");
+  }
+});
+
+
 
 //to serach freelancer detail
 
@@ -125,6 +152,23 @@ console.log( req.body)
     res
       .status(500)
       .json({ message: "Server error while editing employer profile" });
+  }
+});
+
+router.get("/searchoffer/:id", async (req, res) => {
+  try {
+    const employerId = req.params.id;
+
+    const employer = await User.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    res.json(employer);
+
+  } catch (error) {
+    console.error("Error reading employer:", error);
+    res.status(500).json({ message: "Server error while reading employer" });
   }
 });
 

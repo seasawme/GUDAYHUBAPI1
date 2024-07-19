@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { Post } = require("../models/post");
+const { User } = require("../models/User");
 const { findMatchingFreelancers } = require('../utils/findMatchingFreelancers');
 const { sendNotificationEmail } = require('../utils/sendNotificationEmail');
 
@@ -8,10 +9,12 @@ router.get("/readpost", async (req, res) => {
   try {
     const search = req.query.search;
     const searchtitle = req.query.serachtitle;
+     const filter =req.query.filter
 
     await Post.find({
       Jobtype: { $regex: search, $options: "i" },
       Jobtitle: { $regex: searchtitle, $options: "i" },
+      JobTask: { $regex: filter, $options: "i" },
     })
     .then((Post) => res.json(Post));
   } catch (error) {
@@ -36,6 +39,9 @@ router.post("/writepost", async (req, res) => {
         location,
         urgency,
         employerid,
+        anonymous,
+        cv,
+        coverletter
       } = req.body;
   
       const newPost = new Post({
@@ -50,10 +56,22 @@ router.post("/writepost", async (req, res) => {
         Contact,
         location,
         urgency: urgency === 'true', // Ensure this is a boolean
-        employerid
+        employerid,
+        anonymous,
+        cv,
+        coverletter
       });
       await newPost.save();
+      const userFilter = { _id: employerid };
+ 
+      const userUpdate = { $inc: { 'freelancerprofile.gudayhistory.jobs': 1 } };
+      const user = await User.findOneAndUpdate(userFilter, userUpdate, { new: true });
+      if (!user) {
+        return res.status(404).json({ message: "Freelancer not found" });
+      }
       res.json({ message: "Post saved successfully" });
+
+
 
       const matchedFreelancers = await findMatchingFreelancers(newPost);
 
@@ -100,6 +118,24 @@ router.post("/writepost", async (req, res) => {
       }
     })
 
+
+    // delete post
+router.delete('/deletepost/:id', async (req, res) => {
+  try {
+      const postId = req.params.id;
+     const post = await Post.findOneAndDelete({ _id: postId });
+      
+   console.log(postId)
+      if (!post) {
+          return res.status(404).json({ error: 'Post not found' });
+      }
+
+      return res.json({ message: 'Post deleted successfully' });
+  } catch (error) {
+      console.error('Error deleting post:', error.message);
+      return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 module.exports = router;
 

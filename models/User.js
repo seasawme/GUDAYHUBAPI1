@@ -1,6 +1,30 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 const joi = require("joi");
+const { Schema } = mongoose;
+
+const portfolioSchema = new Schema({
+  link: {
+    type: String,
+    default: null,
+    validate: {
+      validator: function(v) {
+        return (v === null && this.title === null) || (v !== null && this.title !== null);
+      },
+      message: props => `Link must have a corresponding title`
+    }
+  },
+  title: {
+    type: String,
+    default: null,
+    validate: {
+      validator: function(v) {
+        return (v === null && this.link === null) || (v !== null && this.link !== null);
+      },
+      message: props => `Title must have a corresponding link`
+    }
+  }
+});
 
 const DataSchema = new mongoose.Schema({
   _id: {
@@ -15,6 +39,10 @@ const DataSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+  },
+  language: {
+    type: String,
+    default: "en",
   },
   Fullname: {
     type: String,
@@ -46,24 +74,34 @@ const DataSchema = new mongoose.Schema({
       educations: { type: [String], default: [] },
       certifications: { type: [String], default: [] },
     },
-    gudayhistory: { type: [String], default: [] },
-    workhistory: { type: [String], default: [] },
-    rating: { type: String, default: null },
-    description: { type: String, default: null },
-    portfolio: {
-      link: { type: String, default: null },
-      title: { type: String, default: null },
+    gudayhistory: {
+      jobs: {
+        type: Number,
+        default: 0,
+        validate: {
+          validator: Number.isInteger,
+          message: "{VALUE} is not an integer value",
+        },
+      },
+      hired: {
+        type: Number,
+        default: 0,
+        validate: {
+          validator: Number.isInteger,
+          message: "{VALUE} is not an integer value",
+        },
+      },
     },
+    workhistory: { type: [String], default: [] },
+    rating: { type: Number, default: 0 },
+    description: { type: String, default: null },
+    portfolio: portfolioSchema,
     employerprofile: {
       profilepic: { type: String, default: null },
     },
   },
 });
 
-
 const User = mongoose.model("users", DataSchema);
 
 module.exports.User = User;
-
-
-
