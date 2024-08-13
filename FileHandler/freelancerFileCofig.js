@@ -19,10 +19,10 @@ if (!fs.existsSync(uploadDocDir)) {
 const storageDoc = multer.diskStorage({
   destination: function (req, file, cb) {
     
-    cb(null, uploadDocDir); // Save files to the 'public/image' folder
+    cb(null, uploadDocDir); 
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Save files with unique names
+    cb(null, Date.now() + path.extname(file.originalname)); 
   }
 });
 

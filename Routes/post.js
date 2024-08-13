@@ -103,6 +103,29 @@ router.post("/writepost", async (req, res) => {
     }
   });
 
+  //read employers for intervew
+  router.get("/searchemployer/:id", async (req, res) => {
+    try {
+  
+      const postId = req.params.id;
+      const post = await Post.findById(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      const employer = await User.findById(post.employerid);
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+
+  
+      res.json({ post, employer });
+    } catch (error) {
+      console.error("Error reading user for intervew:", error);
+      res.status(500).json({ message: "Server error while reading user for intervew" });
+    }
+  });
+
     //job employer has posted
     router.get("/reademployerpost", async (req, res)=>{
       try{

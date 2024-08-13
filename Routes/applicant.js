@@ -32,6 +32,7 @@ router.get("/searchapplied", async (req, res) => {
     }
   });
 
+
   
   //to write applicant
 
@@ -81,6 +82,22 @@ router.get("/searchappliedposts", async (req, res)=>{
     }
   })
 
+  //serch application by id 
+
+  router.get("/searchapplicant/:id", async (req, res) => {
+    try {
+      const applicantId = req.params.id;
+      const application = await applicant.findById(applicantId);
+      if (!application) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      res.json(application);
+    } catch (error) {
+      console.error("Error reading application:", error);
+      res.status(500).json({ message: "Server error while reading application" });
+    }
+  });
+
   //to change status
 
   router.put("/changestatus", async (req, res)=>{
@@ -122,12 +139,15 @@ router.get("/searchappliedposts", async (req, res)=>{
   //to set interview date
   router.post("/setinterviewdate", async (req, res) => {
   try {
-    const { applicantid, interviewdate, interviewTime } = req.body;
+    const { applicantid, interviewdate, interviewTime,interviewInfo,interviewType } = req.body;
 
     const filter = { _id: applicantid };
-    const update = { $set: { interivewDate: interviewdate, interivewTime: interviewTime,  status: "Interview Set" } };
+    const update = { $set: { interivewDate: interviewdate, interivewTime: interviewTime,
+      interviewInfo: interviewInfo ,
+      interviewType: interviewType,  
+      status: "Interview Set" } };
 
-    const updatedApplicant = await applicant.findOneAndUpdate(filter, update, { new: true });
+    const updatedApplicant = await applicant.findOneAndUpdate(filter, update);
 
 
     if (!updatedApplicant) {
@@ -147,9 +167,64 @@ router.get("/searchappliedposts", async (req, res)=>{
     res.status(200).json(updatedApplicant); 
     sendInterviewDateEmail(freelancer,posted, updatedApplicant)
   } catch (error) {
-    console.error("Error setting interview date:", error.message);
+    console.error("Error setting interview :", error.message);
     res.status(500).send("Server error while setting interview date");
   }
 });
   
+//search freelaner for interview
+
+router.get("/searchfreelancer/:FreelancerId", async (req, res) => {
+  try {
+    const FreelancerId = req.params.FreelancerId;
+
+    const freelancer = await User.findById(FreelancerId);
+    if (!freelancer) {
+      return res.status(404).json({ message: "Freelancer not found" });
+    }
+
+
+    res.json(freelancer);
+    console.log("a",freelancer)
+   
+  } catch (error) {
+    console.error("Error searching freelancer :", error.message);
+    res.status(500).send("Server error while searching freelancer");
+  }
+});
+
+//  applications where an employer has set interviews
+router.get('/applicationInterview/:employerId', async (req, res) => {
+
+  const employerId = req.params.employerId;
+
+  try {
+  
+    const posts = await Post.find({ employerid: employerId });
+
+
+    if (!posts.length) {
+      return res.status(404).json({ message: 'No posts found for this employer.' });
+    }
+
+    const postIds = posts.map(post => post._id);
+
+    // Find all applicants with status 'Interview Set' and matching post IDs
+    const applications = await applicant.find({
+      postid: { $in: postIds },
+      status: 'Interview Set'
+    }).populate('postid'); // Populate postid to get post details
+
+  
+    res.json(applications);
+
+  
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
     module.exports = router;

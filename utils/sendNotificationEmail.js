@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 require("dotenv").config();
 
-// Function to send email
+
 async function sendEmail(to, subject, text, html) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -10,7 +10,6 @@ async function sendEmail(to, subject, text, html) {
       pass: process.env.EMAIL_APP_PASSWORD
     }
   });
-
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: to,
@@ -26,6 +25,31 @@ async function sendEmail(to, subject, text, html) {
     console.error(`Error sending email to ${to}:`, error);
   }
 }
+
+async function sendEmailToGudayHub(to, subject, text, html) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD
+    }
+  });
+  const mailOptionsToGudayHub = {
+    from: to,
+    to: process.env.EMAIL_USER,
+    subject: subject,
+    text: text,
+    html: html
+  };
+  try {
+    await transporter.sendMail(mailOptionsToGudayHub);
+    console.log(`Email sent from ${to}`);
+  } catch (error) {
+    console.error(`Error sending email from ${to}:`, error);
+  }
+}
+
+
 
 async function sendWelcomeEmail(to, code) {
   const subject = 'Welcome to GudayHub!';
@@ -63,9 +87,18 @@ async function sendOfferEmail(freelancer, user) {
   await sendEmail(freelancer.Email, subject, text, html);
 }
 
+async function contactFormUsers(name,email,message) {
+  const subject = `A user my the name ${name} is trying to contact you`;
+  const text = `${message}\n\n`;
+  const html = `<p>${message}</p>`;
+
+  await sendEmailToGudayHub(email, subject, text, html);
+}
+
 module.exports = {
   sendNotificationEmail,
   sendInterviewDateEmail,
   sendOfferEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  contactFormUsers
 };

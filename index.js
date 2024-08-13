@@ -22,6 +22,10 @@ const language = require("./Routes/language");
 const Complaint = require("./Routes/Complaint");
 const Offer = require("./Routes/offer");
 const testimony = require("./Routes/testimony");
+const admin = require("./Routes/admin");
+
+
+
 // Initialize i18next
 i18next
   .use(Backend)
@@ -37,7 +41,7 @@ app.use(middleware.handle(i18next));
 mongoose
   .connect(process.env.URL)
   .then(() => console.log("Success, MongoDB connected"))
-  .catch((ex) => console.error(ex));
+  .catch((error) => console.error("Error connecting to MongoDB:", error));
 
 app.use(cors());
 app.use(express.json());
@@ -58,6 +62,7 @@ app.use("/language", language)
 app.use("/Complaint", Complaint)
 app.use("/Offer", Offer)
 app.use("/testimony", testimony)
+app.use("/admin", admin)
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

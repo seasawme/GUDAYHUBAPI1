@@ -3,6 +3,9 @@ const router = express.Router();
 const { User } = require("../models/User");
 const upload = require("../FileHandler/profilepicConfig")
 const uploadDoc = require("../FileHandler/freelancerFileCofig")
+const generateCV = require("../FileHandler/generateCV")
+const fs = require('fs');
+const path = require('path');
 
 
 
@@ -155,6 +158,48 @@ router.get("/apply/:id", async (req, res) => {
     res.status(500).json({ message: "Server error while reading freelancer" });
   }
 });
+
+router.post("/generateCV", async (req, res) => {
+  try {
+    const user = req.body.user;
+    const address = req.body.address;
+    const education = req.body.education;
+
+    const uploadDocDir = path.join(__dirname, '../public/documents/cv-files' );
+
+    if (!fs.existsSync(uploadDocDir)){
+      fs.mkdirSync(uploadDocDir);
+  }
+
+    const filePath = path.join(uploadDocDir, `/${user.username}CV.pdf`);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath); // Delete the old CV file
+    }
+
+    
+    generateCV(user,address,education,filePath);
+
+    res.status(200).json({ message: "CV generated successfully", filePath });
+  } catch (error) {
+    console.error("Error generating CV:", error);
+    res.status(500).json({ message: "Server error while generating CV" });
+  }
+});
+
+
+router.get('/downloadCV/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, '../public/documents/cv-files', filename);
+
+  res.download(filePath, (err) => {
+    if (err) {
+      console.error("Error downloading file:", err);
+      res.status(500).send("Error downloading file.");
+    }
+  });
+});
+
 
 
 

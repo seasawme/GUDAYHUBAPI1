@@ -65,6 +65,21 @@ const DataSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  status:{
+    type: String,
+    default: 'active'
+  },
+  CreatedDate: {
+    type: Date,
+    default: Date.now
+},
+IsVerified: {
+  type: Boolean,
+  required: true,
+},
+VerifiedDoc: {
+  type: String,
+},
   freelancerprofile: {
     profilepic: { type: String, default: null },
     title: { type: String, default: null },

@@ -24,6 +24,9 @@ const ApplicantSchema = new mongoose.Schema({
     },
     interviewInfo:{
         type: String,
+    },
+    interviewType:{
+        type: String,
     }
 });
  const applicant = mongoose.model("applicant", ApplicantSchema);

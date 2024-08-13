@@ -2,76 +2,185 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const { User } = require("../models/User");
+const { nonVerifiedUsers } = require("../models/nonVerifiedUser");
 const { Vcode } = require("../models/verifycod");
-const { sendWelcomeEmail } = require('../utils/sendNotificationEmail');
+const { sendWelcomeEmail,contactFormUsers } = require('../utils/sendNotificationEmail');
 
-router.post("/registerUser", async (req, res) => {
-  try { 
+const { body, validationResult } = require('express-validator');
 
-    let aUser = await User.find({ username: req.body.username });
-    if (aUser.length > 0) {
-      return res.status(400).send("User already registered");
-    }
-    const code = req.body.code
-    const user = new User({
-      Usertype: req.body.Usertype,
-      Fullname: req.body.Fullname,
-      username: req.body.username,
-      Phonenumber: req.body.Phonenumber,
-      Email: req.body.Email,
-      Password: await bcrypt.hash(req.body.Password, 10),
-      Gender: req.body.Gender,
-      profilepic: req.body.profilepic,
-      title: req.body.title,
-      freelancerprofile: req.body.freelancerprofile,
-    });
-    const vercode = await Vcode.findOne({email:user.Email });
-  
-
-    if (!vercode) {
-      return res.status(404).send("User not found");
-    }
-
-    if (vercode.verificationCode !== code) {
-      return res.status(400).send("Invalid code");
-    }
-
-    if (new Date() > vercode.codeExpiry) {
-      return res.status(400).send("Code has expired");
-    }
-
-    Vcode.verificationCode = null;
-    Vcode.codeExpiry = null;
-    console.log(user);
-    await user.save();
-
-    res.status(201).json({ message: "data saved successfully" });
-  } catch (error) {
-    console.log("errorrrrrrr", error);
-    res.status(500).send("server error while saving data erorrrrrrrr");
-  }
-});
 
 function generateCode() {
   return Math.floor(10000 + Math.random() * 90000).toString();
 }
+
+const sendVerificationCode = async (email) => {
+  const code = generateCode();
+  const expiryDate = new Date(Date.now() + 10 * 60 * 1000); 
+
+  await Vcode.updateOne(
+    { email: email },
+    { $set: { verificationCode: code, codeExpiry: expiryDate } },
+    { upsert: true } 
+  );
+
+  await sendWelcomeEmail(email, code);
+  return code;
+};
+
+const validateEmailDomain = (email) => {
+  const invalidDomains = ['gamil.com', 'gnail.com', 'yaho.com']; // Add more common misspellings if needed
+  const domain = email.split('@')[1];
+  return !invalidDomains.includes(domain);
+};
+
+router.post(
+  "/registerUser",
+  [
+
+    body('Usertype').notEmpty().withMessage('User type is required'),
+    body('Fullname').notEmpty().withMessage('Full name is required'),
+    body('username').isAlphanumeric().withMessage('Username must be alphanumeric'),
+    body('Phonenumber').isMobilePhone().withMessage('Invalid phone number'),
+    body('Email').isEmail().withMessage('Invalid email address')
+    .custom(value => validateEmailDomain(value))
+    .withMessage('Invalid email address'),
+    body('Password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('Gender').isIn(['male', 'female', 'Other']).withMessage('Invalid gender'),
+  ],
+  async (req, res) => {
+  
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      let aUser = await User.find({    $or: [
+        { username: req.body.username },
+        { Email: req.body.Email }
+      ] });
+      if (aUser.length > 0) {
+        return res.status(400).send("User already registered");
+      }
+
+      let existingUser = await nonVerifiedUsers.findOne({  Email:req.body.Email  });
+
+      if (existingUser) {
+const code = generateCode()
+        await Vcode.updateOne(
+          { email: req.body.Email },
+          { $set: { verificationCode: code, codeExpiry: new Date(Date.now() + 10 * 60 * 1000) } },
+          { upsert: true }
+        );
+
+        await sendWelcomeEmail( req.body.Email, code);
+  
+        return res.status(201).json({ message: 'User already exists. Verification code has been reset.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(req.body.Password, 10);
+
+
+      const user = new nonVerifiedUsers({
+        Usertype: req.body.Usertype,
+        Fullname: req.body.Fullname,
+        username: req.body.username,
+        Phonenumber: req.body.Phonenumber,
+        Email: req.body.Email,
+        Password: hashedPassword,
+        Gender: req.body.Gender,
+        profilepic: req.body.profilepic,
+        title: req.body.title,
+        IsVerified: req.body.IsVerified || false,
+        freelancerprofile: req.body.freelancerprofile,
+      });
+
+
+      await user.save();
+
+      await sendVerificationCode(user.Email);
+
+      res.status(201).json({ message: "Verification code sent to email" });
+    } catch (error) {
+      console.error("Error sending Verification code:", error);
+      res.status(500).send("Server error while sending Verification code");
+    }
+  }
+);
+
+router.post('/verify', async (req, res) => {
+  try {
+    const { email, verificationCode } = req.body;
+
+    const unverifiedUser = await nonVerifiedUsers.findOne({ Email: email });
+
+    if (!unverifiedUser) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const vercode = await Vcode.findOne({ email: email });
+
+    if (!vercode) {
+      return res.status(404).json({ message: 'Verification code not found' });
+    }
+
+    if (vercode.verificationCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    if (new Date() > vercode.codeExpiry) {
+      return res.status(400).json({ message: 'Code has expired' });
+    }
+
+
+    await Vcode.updateOne(
+      { email: email },
+      { $set: { verificationCode: null, codeExpiry: null } }
+    );
+
+ 
+    const newUser = new User({
+      Usertype: unverifiedUser.Usertype,
+      Fullname: unverifiedUser.Fullname,
+      username: unverifiedUser.username,
+      Phonenumber: unverifiedUser.Phonenumber,
+      Email: unverifiedUser.Email,
+      Password: unverifiedUser.Password,
+      Gender: unverifiedUser.Gender,
+      profilepic: unverifiedUser.profilepic,
+      title: unverifiedUser.title,
+      IsVerified: false,
+      freelancerprofile: unverifiedUser.freelancerprofile,
+    });
+
+    await newUser.save();
+
+
+    await nonVerifiedUsers.deleteOne({ Email: email });
+
+    return res.status(200).json({ message: 'Verification successful' });
+
+  } catch (error) {
+    console.error('Error during verification:', error);
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+});
+
+
 
 router.post("/sendcode", async (req, res) => {
   try {
     const { email } = req.body;
 
     const code = generateCode();
-    const expiryDate = new Date(Date.now() + 10 * 60 * 1000); // Code expires in 10 minutes
+    const expiryDate = new Date(Date.now() + 10 * 60 * 1000); 
 
-    // Save the code and expiry date to the user's record in the database
     await Vcode.updateOne(
       { email: email },
       { $set: { verificationCode: code, codeExpiry: expiryDate } },
-      { upsert: true } // This will insert the document if it doesn't exist
+      { upsert: true } 
     );
 
-    console.log("email",email)
-    // Send the code via email
     await sendWelcomeEmail(email, code);
 
     res.status(200).send("Code sent successfully");
@@ -149,6 +258,19 @@ router.get("/serach/:id", async (req, res) => {
   } catch (error) {
     console.error("Error serching user:", error);
     res.status(500).json({ message: "Server error while serching user" });
+  }
+});
+
+router.post('/writecontact', async (req, res) => {
+  try {
+    const { fullname, email, message} = req.body;
+
+    await contactFormUsers(fullname, email, message)
+
+    res.json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.log('Error contacting:', error.message);
+    res.status(500).send('Server error while contacting');
   }
 });
 
