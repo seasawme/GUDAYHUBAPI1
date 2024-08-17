@@ -3,7 +3,9 @@ const router = express.Router();
 const {Hired} = require("../models/hired");
 const {applicant} = require("../models/applicant");
 const { User } = require("../models/User");
+const { Post } = require("../models/post");
 const { ObjectId } = require('mongoose').Types;
+const { sendHireEmail } = require('../utils/sendNotificationEmail');
 
 
 router.get("/searchhiredposts", async (req, res)=>{
@@ -24,32 +26,39 @@ router.get("/searchhiredposts", async (req, res)=>{
     try {
       const { appId } = req.body;
   
-      // Find the applicant by ID
+      // Retrieve applicant
       const Applicant = await applicant.findById(appId);
       if (!Applicant) {
         return res.status(404).send('Applicant not found');
       }
   
-      // Create a new Hired document from the Applicant data
-      // Remove the _id field to avoid duplicate key error
+      // Prepare hired applicant data
       const applicantData = Applicant.toObject();
-      delete applicantData._id; // Remove the _id field to let MongoDB generate a new one
+      delete applicantData._id;
       const hiredApplicant = new Hired(applicantData);
   
-      // Save the applicant to Hired collection
+      // Save hired applicant
       await hiredApplicant.save();
   
-      // Update the Freelancer's job count
+      // Update freelancer profile
       const userFilter = { _id: Applicant.Freelancerid };
       const userUpdate = { $inc: { 'freelancerprofile.gudayhistory.jobs': 1 } };
-  
       const user = await User.findOneAndUpdate(userFilter, userUpdate, { new: true });
-  
       if (!user) {
-        return res.status(404).json({ message: "Freelancer not found" });
+        return res.status(404).json({ message: 'Freelancer not found' });
       }
   
-      // Remove the applicant from Applicant collection
+      // Retrieve job post details
+      const postFilter = { _id: Applicant.postid };
+      const post = await Post.findById(postFilter);
+      if (!post) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+  
+      // Send hire email
+      await sendHireEmail(user, post);
+  
+      // Remove applicant from applicants
       await applicant.findByIdAndDelete(appId);
   
       res.status(200).send('Applicant moved to hired successfully');

@@ -61,6 +61,10 @@ const PostSchema = new mongoose.Schema({
         type: Boolean,
         required: true
     },
+    status:{
+        type: String,
+        default: "Active"
+    }
 });
 
 const Post = mongoose.model("Post", PostSchema);

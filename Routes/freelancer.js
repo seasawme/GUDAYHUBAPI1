@@ -67,16 +67,16 @@ router.get("/freelancerapply/:id", async (req, res) => {
 router.put("/edit/:id", uploadDoc.fields([
   { name: 'cv', maxCount: 1 },
   { name: 'educationDocs', maxCount: 10 },
-  { name: 'certificationDocs', maxCount: 10 }]), async (req, res) => {
+  { name: 'certificationDocs', maxCount: 10 },
+  { name: 'portfoliolink', maxCount: 10 }]), async (req, res) => {
   try {
-
     const freelancerid = req.params.id;
-    const {title,skills, workhistory, description} = req.body;
+    const {title,skills, workhistory, description,portfoliotitle,porlink,portitle} = req.body;
     const cvPath = req.files.cv ? `documents/${req.files.cv[0].filename}` : null;
     const educationDocsPath = req.files.educationDocs ? req.files.educationDocs.map(file => `documents/${file.filename}` ): null;
     const certificationDocsPath = req.files.certificationDocs ? req.files.certificationDocs.map(file => `documents/${file.filename}`) : null;
-  
-console.log(req.body)
+    const portfoliolinkPath = req.files.portfoliolink ? req.files.portfoliolink.map(file => `documents/${file.filename}`) : null;  
+
     const filter = { _id: freelancerid };
     const update = {$set: {}  };
 
@@ -106,7 +106,26 @@ if (educationDocsPath) {
 if (certificationDocsPath) {
    update.$push = update.$push || {};
   update.$push['freelancerprofile.additionaldoc.certifications'] = { $each: Array.isArray(certificationDocsPath) ? certificationDocsPath : [certificationDocsPath] };
-}    
+}   
+
+if (portfoliolinkPath) {
+  update.$push = update.$push || {};
+ update.$push['freelancerprofile.portfolio.link'] = { $each: Array.isArray(portfoliolinkPath) ? portfoliolinkPath : [portfoliolinkPath] };
+}  
+
+if (portfoliotitle) {
+  update.$push = update.$push || {};
+  update.$push['freelancerprofile.portfolio.title'] = { $each: Array.isArray(portfoliotitle) ? portfoliotitle : [portfoliotitle] };
+}  
+if (porlink) {
+  update.$push = update.$push || {};
+  update.$push['freelancerprofile.portfolio.link'] = { $each: Array.isArray(porlink) ? porlink : [porlink] };
+} 
+if (portitle) {
+  update.$push = update.$push || {};
+  update.$push['freelancerprofile.portfolio.title'] = { $each: Array.isArray(portitle) ? portitle : [portitle] };
+}  
+ 
     const updatedFreelancer = await User.findOneAndUpdate(filter, update,{ new: true });
 
     res.status(200).json(updatedFreelancer);

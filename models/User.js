@@ -3,29 +3,6 @@ const { ObjectId } = mongoose.Schema.Types;
 const joi = require("joi");
 const { Schema } = mongoose;
 
-const portfolioSchema = new Schema({
-  link: {
-    type: String,
-    default: null,
-    validate: {
-      validator: function(v) {
-        return (v === null && this.title === null) || (v !== null && this.title !== null);
-      },
-      message: props => `Link must have a corresponding title`
-    }
-  },
-  title: {
-    type: String,
-    default: null,
-    validate: {
-      validator: function(v) {
-        return (v === null && this.link === null) || (v !== null && this.link !== null);
-      },
-      message: props => `Title must have a corresponding link`
-    }
-  }
-});
-
 const DataSchema = new mongoose.Schema({
   _id: {
     type: ObjectId,
@@ -65,21 +42,21 @@ const DataSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  status:{
+  status: {
     type: String,
-    default: 'active'
+    default: "active",
   },
   CreatedDate: {
     type: Date,
-    default: Date.now
-},
-IsVerified: {
-  type: Boolean,
-  required: true,
-},
-VerifiedDoc: {
-  type: String,
-},
+    default: Date.now,
+  },
+  IsVerified: {
+    type: Boolean,
+    required: true,
+  },
+  VerifiedDoc: {
+    type: String,
+  },
   freelancerprofile: {
     profilepic: { type: String, default: null },
     title: { type: String, default: null },
@@ -110,7 +87,10 @@ VerifiedDoc: {
     workhistory: { type: [String], default: [] },
     rating: { type: Number, default: 0 },
     description: { type: String, default: null },
-    portfolio: portfolioSchema,
+    portfolio: {
+      link: { type: [String], default: [] },
+      title: { type: [String], default: [] },
+    },
     employerprofile: {
       profilepic: { type: String, default: null },
     },

@@ -15,6 +15,10 @@ const ApplicantSchema = new mongoose.Schema({
     },
     status:{
         type: String,
+    },appliedDate: {
+        type: Date,
+        required: true,
+        default: Date.now
     },
     interivewDate:{
         type: Date,

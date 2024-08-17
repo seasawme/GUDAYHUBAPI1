@@ -6,6 +6,7 @@ const { User } = require("../models/User");
 const { Post } = require("../models/post");
 const {PostHistory} = require('../models/postHistory'); 
 const { Vcode } = require("../models/verifycod");
+const { VerificationSchedule } = require("../models/VerificationSchedule");
 const { sendWelcomeEmail } = require('../utils/sendNotificationEmail');
 const upload = require("../FileHandler/profilepicConfig")
 const uploadDoc = require("../FileHandler/freelancerFileCofig")
@@ -228,14 +229,33 @@ router.get("/allUser", async (req, res) => {
         if (!result) {
           return res.status(404).json({ message: 'User not found' });
         }
+
+        const freelancerId = result._id;
+
+        if (freelancerId) {
+          await VerificationSchedule.deleteMany({ freelancerId });
+        }
   
-        res.status(200).json({ message: 'verification successful' });
+        res.status(200).json({ message: 'User verification successful' });
     
       } catch (error) {
         console.error("Error verifying user:", error);
         res.status(500).json({ message: "Server error while verifying user" });
       }
     })
+
+
+    // get all schedules
+router.get('/Allschedules', async (req, res) => {
+  try {
+      const schedules = await VerificationSchedule.find();
+      
+      res.status(200).json(schedules);
+  } catch (error) {
+      console.error('Error retrieving schedules:', error);
+      res.status(500).json({ message: 'Server error while retrieving schedules' });
+  }
+});
 
 
   router.put("/picedit/:id", upload.single('file'), async (req, res) => {

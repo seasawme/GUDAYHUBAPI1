@@ -39,7 +39,8 @@ router.get("/searchapplied", async (req, res) => {
   router.post("/writeapplicant", async (req, res)=>{
     try{
         const { Freelancerid, postid, Coverletter,status} = req.body;
-        const newPost = new applicant({  Freelancerid, postid, Coverletter,status})
+        const appliedDate = new Date();
+        const newPost = new applicant({  Freelancerid, postid, Coverletter,status,appliedDate})
         await newPost.save();
         res.json({message: "applicant saved successfully"})
 
